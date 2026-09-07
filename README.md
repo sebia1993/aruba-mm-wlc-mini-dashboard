@@ -19,6 +19,12 @@
 | 검증 증거 | 비식별 fixture, 가짜 SSH 통합 테스트, Offscreen UI, Windows onedir 패키지와 smoke 자동 검증 |
 | 증거의 한계 | 자동·합성 검증 결과이며, 실제 Aruba 장비·운영 환경 검증 및 업무 성과 수치와 구분 |
 
+### 채용 검토 시 읽는 순서
+
+1. [설계 판단과 소스·회귀 테스트 연결](docs/PORTFOLIO_KO.md): 수집 실패, 낮은 사용량, 연속 관측을 구분하는 근거
+2. [장비 없는 Demo·fixture 재현](docs/PORTFOLIO_KO.md#장비-없이-재현하기): 예시 화면과 상태 전이를 확인하는 방법
+3. [검증 보고서](docs/VALIDATION_REPORT_KO.md)와 [Windows 실행 기록](https://github.com/sebia1993/aruba-cluster-health-dashboard/actions/workflows/ci-windows.yml): 자동 검증과 현장 검증의 경계
+
 ## 한눈에 보기
 
 | 항목 | 내용 |
