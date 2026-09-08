@@ -193,7 +193,11 @@ def _save(window: MainWindow, path: Path, snapshot: SimpleNamespace) -> None:
     window.update_snapshot(snapshot)
     window.resize(1400, 1100)
     window._apply_responsive_mode(force=True)
-    QApplication.processEvents()
+    for _ in range(4):
+        QApplication.processEvents()
+    description = window.overview_page.recent_events.empty_state.description_label
+    if description.height() < description.heightForWidth(description.width()):
+        raise RuntimeError("Recent-event empty-state description is clipped")
     if not window.grab().save(str(path), "PNG"):
         raise RuntimeError(f"문서 화면 PNG 저장에 실패했습니다: {path}")
 

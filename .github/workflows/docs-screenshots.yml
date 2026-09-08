@@ -5,11 +5,17 @@ on:
   pull_request:
     paths:
       - "scripts/render_docs_screenshots.py"
+      - "src/aruba_mini_dashboard/ui/**"
+      - "tests/test_ui_responsive_dashboard.py"
+      - "tests/test_dashboard_widgets.py"
       - ".github/workflows/docs-screenshots.yml"
   push:
     branches: ["codex/usage-evidence-20260908"]
     paths:
       - "scripts/render_docs_screenshots.py"
+      - "src/aruba_mini_dashboard/ui/**"
+      - "tests/test_ui_responsive_dashboard.py"
+      - "tests/test_dashboard_widgets.py"
       - ".github/workflows/docs-screenshots.yml"
 
 permissions:
@@ -49,6 +55,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed" }
           .\.venv\Scripts\python.exe -m pip check
           if ($LASTEXITCODE -ne 0) { throw "Dependency check failed" }
+      - name: Check dashboard widgets and responsive empty-state text
+        shell: pwsh
+        run: |
+          $env:QT_QPA_FONTDIR = Join-Path $env:WINDIR "Fonts"
+          .\.venv\Scripts\python.exe -m pytest tests/test_dashboard_widgets.py tests/test_ui_responsive_dashboard.py -q
+          if ($LASTEXITCODE -ne 0) { throw "Dashboard layout regression failed" }
       - name: Render real widgets with synthetic data only
         shell: pwsh
         run: |
