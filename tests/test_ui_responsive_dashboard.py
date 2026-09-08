@@ -332,3 +332,22 @@ print('COMPACT_SCALE_OK')
     )
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "COMPACT_SCALE_OK" in completed.stdout
+
+
+@pytest.mark.parametrize("width", [1080, 1400, 1920])
+def test_overview_empty_event_description_fits_available_width(width: int) -> None:
+    app = _app()
+    window = MainWindow(FakeCoordinator(), _settings(), demo_mode=True)
+    try:
+        window.resize(width, 1100)
+        window.show()
+        window.update_snapshot(_snapshot())
+        for _ in range(4):
+            app.processEvents()
+        description = window.overview_page.recent_events.empty_state.description_label
+        assert description.isVisible()
+        assert description.height() >= description.heightForWidth(description.width())
+    finally:
+        window.tray_icon.hide()
+        window.request_quit()
+        app.processEvents()

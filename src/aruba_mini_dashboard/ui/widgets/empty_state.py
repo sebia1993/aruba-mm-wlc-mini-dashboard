@@ -38,7 +38,10 @@ class EmptyState(PaletteAwareWidgetMixin, QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(SPACING.lg, SPACING.xl, SPACING.lg, SPACING.xl)
         root.setSpacing(SPACING.sm)
-        root.setAlignment(Qt.AlignCenter)
+        # Keep vertical centering while giving wrapped text the available width.
+        # Horizontal layout centering otherwise pins labels to their narrow
+        # sizeHint and clips a two-line description at the minimum-height layout.
+        root.setAlignment(Qt.AlignVCenter)
 
         self.icon_label = QLabel(self)
         self.icon_label.setAlignment(Qt.AlignCenter)
