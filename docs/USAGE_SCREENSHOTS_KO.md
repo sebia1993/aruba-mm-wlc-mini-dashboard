@@ -18,7 +18,7 @@
 - **읽을 값:** 전체 상태뿐 아니라 Controller Up의 분모, 확인 가능한 Active Client, 활성 Incident와 마지막 점검 시각을 함께 봅니다. 예시는 4대 모두 Up, 합성 Active 합계 512입니다.
 - **다음 행동:** 카드와 하단 장비표가 같은 대상을 설명하는지 확인한 뒤 이상이 있는 IP로 좁힙니다. 마지막 관측 시각이 오래되면 현재 상태로 단정하지 않습니다.
 
-그래프는 앱 세션 내 최근 최대 60회 표시이며 장기간 저장된 성능 추세가 아닙니다. 정상 예시는 첫 snapshot 1개라 점 하나만 보입니다. 문서 renderer는 이벤트 저장소를 연결하지 않아 최근 이벤트 영역은 비어 있습니다. 현재 화면에서 빈 상태의 보조 문구 일부가 잘려 보이는 레이아웃 한계도 남아 있습니다.
+그래프는 앱 세션 내 최근 최대 60회 표시이며 장기간 저장된 성능 추세가 아닙니다. 정상 예시는 첫 snapshot 1개라 점 하나만 보입니다. 문서 renderer는 이벤트 저장소를 연결하지 않아 최근 이벤트 영역은 비어 있습니다.
 
 ## 3. 서로 다른 이상을 분리
 
@@ -40,12 +40,13 @@
 
 ## 캡처 출처와 재현
 
-캡처 소스: `013d13cd1c4b6439c67e69f8370fb38a7d6ccce4`. [Windows 생성 실행 34175801621](https://github.com/sebia1993/aruba-cluster-health-dashboard/actions/runs/34175801621)에서 4개 PNG를 내려받아 직접 검토했습니다.
+캡처 소스: `9d4b153d93de60b25b90af19a1494f26b4175f38`. [Windows 생성 실행 34177086666](https://github.com/sebia1993/aruba-cluster-health-dashboard/actions/runs/34177086666)에서 4개 PNG를 내려받아 직접 검토했습니다.
 
 - 앱 버전: **0.7.0**. 캡처 SHA·실행 ID·각 PNG 크기와 SHA-256은 [capture-metadata.json](images/capture-metadata.json)에 기록합니다.
 - 도구: [기존 Qt 문서 renderer](../scripts/render_docs_screenshots.py), [Windows 캡처 workflow](../.github/workflows/docs-screenshots.yml).
+- 빈 상태 문구 잘림의 회귀 검사는 1080/1400/1920px에서 필요한 문구 높이를 비교합니다. 캡처 workflow에서 관련 위젯·반응형 검사 17개가 Windows에서 통과했습니다. 이 이미지는 1400×1100 개요/필터와 1100×900 설정 창입니다.
 - 환경: GitHub Actions `windows-latest`의 **Windows Server 2025**, CPython 3.13.15 x64, PySide6 6.11.0, Qt offscreen 100%, Windows 내장 Malgun Gothic. 물리 Windows 11·멀티모니터 검증이 아닙니다.
-- 입력: RFC 5737 문서 IP, 가상 장비명, 고정 시각, 합성 정상/이상 snapshot과 Incident. CoordinatorStub은 네트워크 일을 하지 않고 Python socket 연결도 차단합니다. 앱 디자인·수집·판정 로직을 수정해 캡처하지 않았습니다.
+- 입력: RFC 5737 문서 IP, 가상 장비명, 고정 시각, 합성 정상/이상 snapshot과 Incident. CoordinatorStub은 네트워크 일을 하지 않고 Python socket 연결도 차단합니다. 수집·판정 로직은 변경하지 않았습니다. 빈 상태 보조 문구가 가용폭을 쓰도록 한 최소 레이아웃 수정은 [미배포 변경 이력](../CHANGELOG.md)에 기록했습니다.
 
 저장소 루트의 Windows PowerShell에서:
 
