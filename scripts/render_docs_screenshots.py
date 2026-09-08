@@ -7,6 +7,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import hashlib
+import json
+import platform
+import socket
+import subprocess
+import tomllib
+from unittest.mock import patch
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,12 +21,14 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6 import __version__ as qt_version
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QFont, QFontDatabase, QImage
 from PySide6.QtWidgets import QApplication
 
 from aruba_mini_dashboard.config import AppSettings, ClusterMemberSettings
 from aruba_mini_dashboard.ui.main_window import MainWindow
+from aruba_mini_dashboard.ui.settings_dialog import SettingsDialog
 
 
 class CoordinatorStub(QObject):
@@ -51,8 +60,8 @@ class CoordinatorStub(QObject):
 
 def _settings() -> AppSettings:
     settings = AppSettings.default()
-    settings.ui.window_width = 1180
-    settings.ui.window_height = 680
+    settings.ui.window_width = 1400
+    settings.ui.window_height = 1100
     settings.ui.window_maximized = False
     settings.mobility_master.management_ip = "192.0.2.1"
     settings.mobility_master.display_name = "DEMO-MM"
@@ -71,8 +80,8 @@ def _device(
     *,
     severity: str = "normal",
     controller_state: str = "up",
-    active: int = 120,
-    standby: int = 80,
+    active: int | None = 120,
+    standby: int | None = 80,
     connection_type: str = "L2-Connected",
     distribution_state: str = "normal",
     streak: int = 0,
@@ -90,7 +99,7 @@ def _device(
         distribution_state=distribution_state,
         load_anomaly_streak=streak,
         severity=severity,
-        last_seen=datetime(2026, 8, 21, 10, 30, tzinfo=timezone.utc),
+        last_seen=datetime(2026, 9, 8, 10, 30, tzinfo=timezone.utc),
         is_registered=True,
         issue_reasons=list(reasons),
     )
@@ -109,7 +118,7 @@ def _snapshot(*, incident: bool) -> SimpleNamespace:
             summary="등록 컨트롤러의 MM 상태와 Cluster 분배가 정상입니다.",
             devices=devices,
             problem_ips=[],
-            checked_at=datetime(2026, 8, 21, 10, 30, tzinfo=timezone.utc),
+            checked_at=datetime(2026, 9, 8, 10, 30, tzinfo=timezone.utc),
             monitoring_scope_ips=[device.ip for device in devices],
             raw_outputs={},
             parse_results={},
@@ -134,8 +143,8 @@ def _snapshot(*, incident: bool) -> SimpleNamespace:
             "WLC-03",
             severity="failure",
             controller_state="down",
-            active=0,
-            standby=0,
+            active=None,
+            standby=None,
             distribution_state="unknown",
             reasons=("MM이 Controller 상태를 Down으로 보고함",),
         ),
@@ -146,18 +155,24 @@ def _snapshot(*, incident: bool) -> SimpleNamespace:
         summary="MM Down과 Client 분배 이상이 서로 다른 장비에서 감지되었습니다.",
         devices=devices,
         problem_ips=["192.0.2.12", "192.0.2.11"],
-        checked_at=datetime(2026, 8, 21, 10, 35, tzinfo=timezone.utc),
+        checked_at=datetime(2026, 9, 8, 10, 35, tzinfo=timezone.utc),
         monitoring_scope_ips=[device.ip for device in devices],
         raw_outputs={},
         parse_results={},
         previous_devices={},
-        active_incidents=[],
+        active_incidents=[
+            SimpleNamespace(ip="192.0.2.11", active=True, acknowledged=False,
+                            incident_type="load_anomaly"),
+            SimpleNamespace(ip="192.0.2.12", active=True, acknowledged=False,
+                            incident_type="controller_down"),
+        ],
     )
 
 
 def _load_docs_font(app: QApplication) -> None:
     font_path = os.environ.get("DOCS_FONT_PATH", "").strip()
     if not font_path:
+        app.setFont(QFont("Malgun Gothic" if sys.platform == "win32" else "Apple SD Gothic Neo", 10))
         return
     font_id = QFontDatabase.addApplicationFont(font_path)
     if font_id < 0:
@@ -170,7 +185,7 @@ def _load_docs_font(app: QApplication) -> None:
 
 def _save(window: MainWindow, path: Path, snapshot: SimpleNamespace) -> None:
     window.update_snapshot(snapshot)
-    window.resize(1180, 680)
+    window.resize(1400, 1100)
     window._apply_responsive_mode(force=True)
     QApplication.processEvents()
     if not window.grab().save(str(path), "PNG"):
@@ -203,22 +218,61 @@ def main() -> int:
     app.setQuitOnLastWindowClosed(False)
     _load_docs_font(app)
 
-    coordinator = CoordinatorStub()
-    window = MainWindow(coordinator, _settings(), demo_mode=True)
-    window.show()
-    app.processEvents()
+    def deny_connection(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("Network connections are forbidden in documentation captures")
 
-    normal_path = output / "dashboard-normal.png"
-    incident_path = output / "dashboard-incident.png"
-    _save(window, normal_path, _snapshot(incident=False))
-    _save(window, incident_path, _snapshot(incident=True))
+    names = ["dashboard-normal.png", "dashboard-incident.png", "dashboard-filtered.png", "dashboard-settings.png"]
+    with patch.object(socket.socket, "connect", deny_connection), patch.object(
+        socket.socket, "connect_ex", deny_connection
+    ), patch.object(socket, "create_connection", deny_connection):
+        coordinator = CoordinatorStub()
+        settings = _settings()
+        window = MainWindow(coordinator, settings, demo_mode=True)
+        window.show()
+        app.processEvents()
+        normal = _snapshot(incident=False)
+        incident = _snapshot(incident=True)
+        # Two fixture observations create a real two-point session sparkline.
+        # This is display data, not a measurement or correlation-engine result.
+        _save(window, output / names[0], normal)
+        _save(window, output / names[1], incident)
+        window.status_filter_combo.setCurrentIndex(window.status_filter_combo.findData("failure"))
+        app.processEvents()
+        if window.device_page_model.rowCount() != 1:
+            raise RuntimeError("Failure filter must show only the synthetic Down member")
+        if not window.grab().save(str(output / names[2]), "PNG"):
+            raise RuntimeError("Could not save filtered dashboard")
+        dialog = SettingsDialog(settings, parent=window)
+        dialog.resize(1100, 900)
+        dialog.show()
+        app.processEvents()
+        if not dialog.grab().save(str(output / names[3]), "PNG"):
+            raise RuntimeError("Could not save settings dialog")
+        dialog.close()
+        window.tray_icon.hide()
+        window.request_quit()
+        app.processEvents()
 
-    window.tray_icon.hide()
-    window.close()
-    app.processEvents()
-
-    _validate(normal_path)
-    _validate(incident_path)
+    files = []
+    for name in names:
+        path = output / name
+        _validate(path)
+        picture = QImage(str(path))
+        files.append({"name": name, "width": picture.width(), "height": picture.height(),
+                      "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+    metadata = {
+        "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "app_version": tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text())["project"]["version"], "python": platform.python_version(),
+        "qt": qt_version, "os": platform.platform(),
+        "scale_factor": os.environ.get("QT_SCALE_FACTOR", "1"),
+        "workflow_run_id": os.environ.get("GITHUB_RUN_ID"), "synthetic": True,
+        "method": "actual MainWindow / SettingsDialog with CoordinatorStub and synthetic snapshots",
+        "limitations": "No SSH, parser/correlation pipeline or physical Windows desktop verification",
+        "files": files,
+    }
+    (output / "capture-metadata.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     return 0
 
 
