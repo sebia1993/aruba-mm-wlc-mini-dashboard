@@ -1,0 +1,38 @@
+{
+  "source_sha": "013d13cd1c4b6439c67e69f8370fb38a7d6ccce4",
+  "app_version": "0.7.0",
+  "python": "3.13.15",
+  "qt": "6.11.0",
+  "os": "Windows-2025Server-10.0.26100-SP0",
+  "scale_factor": "1",
+  "workflow_run_id": "34175801621",
+  "synthetic": true,
+  "method": "actual MainWindow / SettingsDialog with CoordinatorStub and synthetic snapshots",
+  "limitations": "No SSH, parser/correlation pipeline or physical Windows desktop verification",
+  "files": [
+    {
+      "name": "dashboard-normal.png",
+      "width": 1400,
+      "height": 1100,
+      "sha256": "a8cf26fd023e7fd9cf560910cb2895b8b74650b2a828f306938dead98e1c98fe"
+    },
+    {
+      "name": "dashboard-incident.png",
+      "width": 1400,
+      "height": 1100,
+      "sha256": "cc267764624178525011132a5b2977bdca5fc6b3266701d9f0d10681af2a5f11"
+    },
+    {
+      "name": "dashboard-filtered.png",
+      "width": 1400,
+      "height": 1100,
+      "sha256": "680d86f213ff3f736183af873f3b3d1a74c23632b879233bdd496ec0d6290269"
+    },
+    {
+      "name": "dashboard-settings.png",
+      "width": 1100,
+      "height": 900,
+      "sha256": "7ac575b5113c9dc4da14e57fad466c02ce89eae4c763e3b97c25ddfa152120f5"
+    }
+  ]
+}
