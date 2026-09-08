@@ -20,10 +20,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+if sys.platform == "win32":
+    os.environ.setdefault("QT_QPA_FONTDIR", str(Path(os.environ["WINDIR"]) / "Fonts"))
 
 from PySide6 import __version__ as qt_version
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QFont, QFontDatabase, QImage
+from PySide6.QtGui import QFont, QFontDatabase, QFontMetrics, QImage
 from PySide6.QtWidgets import QApplication
 
 from aruba_mini_dashboard.config import AppSettings, ClusterMemberSettings
@@ -171,6 +173,8 @@ def _snapshot(*, incident: bool) -> SimpleNamespace:
 
 def _load_docs_font(app: QApplication) -> None:
     font_path = os.environ.get("DOCS_FONT_PATH", "").strip()
+    if not font_path and sys.platform == "win32":
+        font_path = str(Path(os.environ["WINDIR"]) / "Fonts" / "malgun.ttf")
     if not font_path:
         app.setFont(QFont("Malgun Gothic" if sys.platform == "win32" else "Apple SD Gothic Neo", 10))
         return
@@ -180,7 +184,9 @@ def _load_docs_font(app: QApplication) -> None:
     families = QFontDatabase.applicationFontFamilies(font_id)
     if not families:
         raise RuntimeError("문서용 한글 글꼴 family를 확인하지 못했습니다.")
-    app.setFont(QFont(families[0], 9))
+    app.setFont(QFont(families[0], 10))
+    if not all(QFontMetrics(app.font()).inFontUcs4(ord(char)) for char in "가A1"):
+        raise RuntimeError("Documentation font lacks required Korean/Latin glyphs")
 
 
 def _save(window: MainWindow, path: Path, snapshot: SimpleNamespace) -> None:
